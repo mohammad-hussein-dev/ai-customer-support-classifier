@@ -1,0 +1,283 @@
+\documentclass[12pt,a4paper]{article}
+
+% Packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{verbatim}
+
+% Page geometry
+\geometry{margin=2.5cm}
+
+% Fix fancyhdr headheight
+\setlength{\headheight}{15pt}
+
+% Colors
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{primaryblue}{RGB}{45, 125, 157}
+
+% Code style
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+% Header/Footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\leftmark}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Section formatting
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{primaryblue}}{\thesection}{1em}{}
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{primaryblue}}{\thesubsection}{1em}{}
+
+% Title
+\title{\textbf{AI Customer Support Ticket Classification}\\[0.5em]
+\large A Machine Learning Pipeline for Automated Ticket Triage}
+\author{Mohammad-Hussein\\Data Science Team}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This report presents a comprehensive machine learning pipeline for automated classification of customer support tickets into four categories: Billing, Technical Support, Account, and Refund. We implement a TF-IDF and Logistic Regression baseline with extensive exploratory data analysis, cross-validation, and production-ready inference. The system achieves robust performance with interpretable results, including confidence-based routing for human review. All code follows Google Python Style Guide with full documentation and type hints.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+Customer support departments face significant challenges in managing high volumes of incoming tickets. Manual triage is time-consuming, error-prone, and creates bottlenecks during peak periods. Automated ticket classification using Natural Language Processing (NLP) offers a scalable solution for routing tickets to appropriate teams.
+
+\subsection{Problem Statement}
+Given a customer support ticket containing free-form text, automatically classify it into one of four business-relevant categories:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Billing}: Payment issues, invoices, charges, refunds
+    \item \textbf{Technical Support}: Bugs, errors, system failures, integrations
+    \item \textbf{Account}: Profile management, authentication, access control
+    \item \textbf{Refund}: Return requests, refund status, reimbursement
+\end{itemize}
+
+\subsection{Objectives}
+\begin{enumerate}[leftmargin=*]
+    \item Develop an accurate and interpretable text classification model
+    \item Implement robust preprocessing and feature engineering pipelines
+    \item Evaluate model performance using appropriate metrics for imbalanced classes
+    \item Deploy a production-ready inference API with confidence thresholding
+    \item Provide comprehensive visualizations and error analysis
+\end{enumerate}
+
+\section{Methodology}
+
+\subsection{Data Collection}
+The dataset comprises 5,000 synthetic support tickets with realistic class imbalance:
+\begin{itemize}[leftmargin=*]
+    \item Billing: 1,800 (36.0\%)
+    \item Technical Support: 1,500 (30.0\%)
+    \item Account: 1,000 (20.0\%)
+    \item Refund: 700 (14.0\%)
+\end{itemize}
+
+\subsection{Text Preprocessing}
+Text preprocessing includes:
+\begin{enumerate}[leftmargin=*]
+    \item Lowercasing and Unicode normalization
+    \item URL and email removal
+    \item Punctuation stripping
+    \item Stopword filtering (NLTK English stopwords)
+    \item Lemmatization (WordNet)
+    \item Length-based token filtering ($2 \leq \text{length} \leq 20$)
+\end{enumerate}
+
+\subsection{Feature Engineering}
+We employ TF-IDF (Term Frequency-Inverse Document Frequency) vectorization:
+\begin{equation}
+\text{TF-IDF}(t, d) = \text{tf}(t, d) \times \text{idf}(t)
+\end{equation}
+where $\text{idf}(t) = \log \frac{N}{\text{df}(t)}$.
+
+Configuration:
+\begin{itemize}[leftmargin=*]
+    \item Maximum features: 10,000
+    \item N-gram range: $(1, 2)$
+    \item Minimum document frequency: 2
+    \item Maximum document frequency: 0.95
+    \item Sublinear TF scaling enabled
+\end{itemize}
+
+\subsection{Model Selection}
+We evaluate three baseline models:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Logistic Regression} with balanced class weights
+    \item \textbf{Linear SVM} with L2 regularization
+    \item \textbf{Multinomial Naive Bayes} for text baseline
+\end{itemize}
+
+Stratified 5-fold cross-validation ensures reliable performance estimates despite class imbalance.
+
+\section{Exploratory Data Analysis}
+
+\subsection{Category Distribution}
+Figure \ref{fig:dashboard} presents the comprehensive dashboard combining all key insights.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/00_comprehensive_dashboard.png}
+\caption{Comprehensive dashboard: category distribution, priority analysis, text characteristics, temporal trends, and word clouds.}
+\label{fig:dashboard}
+\end{figure}
+
+\subsection{Class Imbalance Analysis}
+The dataset exhibits moderate class imbalance with a maximum imbalance ratio of 2.57x (Billing vs Refund). This necessitates stratified sampling and weighted metrics.
+
+\section{Experimental Results}
+
+\subsection{Cross-Validation Performance}
+Table \ref{tab:cv_results} presents mean cross-validation scores.
+
+\begin{table}[H]
+\centering
+\caption{5-Fold Stratified Cross-Validation Results}
+\label{tab:cv_results}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} \\
+\midrule
+Logistic Regression & 1.0000 & 1.0000 & 1.0000 & 1.0000 \\
+Linear SVM & 1.0000 & 1.0000 & 1.0000 & 1.0000 \\
+Naive Bayes & 1.0000 & 1.0000 & 1.0000 & 1.0000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Test Set Performance}
+Table \ref{tab:test_results} presents performance on the held-out test set.
+
+\begin{table}[H]
+\centering
+\caption{Test Set Performance Comparison}
+\label{tab:test_results}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Model} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-W} & \textbf{F1-Macro} \\
+\midrule
+Logistic Regression & 1.0000 & 1.0000 & 1.0000 & 1.0000 & 1.0000 \\
+Linear SVM & 1.0000 & 1.0000 & 1.0000 & 1.0000 & 1.0000 \\
+Naive Bayes & 1.0000 & 1.0000 & 1.0000 & 1.0000 & 1.0000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Confusion Matrix Analysis}
+Figure \ref{fig:cm} shows the normalized confusion matrix for the best model.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{figures/confusion_matrix.png}
+\caption{Normalized confusion matrix for Logistic Regression on test set.}
+\label{fig:cm}
+\end{figure}
+
+\subsection{Confidence Distribution}
+Figure \ref{fig:conf} illustrates the prediction confidence distribution.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{figures/confidence_distribution.png}
+\caption{Distribution of maximum predicted probabilities.}
+\label{fig:conf}
+\end{figure}
+
+\section{Production Deployment}
+
+\subsection{Confidence Thresholding}
+Tickets with maximum predicted probability $< 0.7$ are flagged for human review. This balances automation coverage with accuracy.
+
+\subsection{API Interface}
+The deployed system exposes a clean Python API:
+
+\begin{lstlisting}[language=Python]
+class TicketClassifier:
+    def predict(self, text: str) -> dict:
+        return {
+            "category": str,
+            "confidence": float,
+            "needs_review": bool,
+            "all_probabilities": dict
+        }
+\end{lstlisting}
+
+\subsection{Streamlit Application}
+An interactive web application provides:
+\begin{itemize}[leftmargin=*]
+    \item Single ticket classification with probability visualization
+    \item Batch CSV upload and processing
+    \item Configurable confidence threshold
+    \item Downloadable results
+\end{itemize}
+
+\section{Conclusion}
+The TF-IDF + Logistic Regression pipeline achieves perfect performance ($F_1 = 1.0000$) on the synthetic dataset with full interpretability. The modular architecture supports future upgrades to transformer-based models (BERT/DistilBERT) without interface changes. The confidence-based routing system ensures production reliability by flagging uncertain predictions for human review.
+
+\section*{Appendix: Project Structure}
+\begin{verbatim}
+ai-customer-support-classifier/
+|-- data/raw/tickets.csv          # 5,000 synthetic tickets
+|-- models/production/            # Trained artifacts
+|   |-- model.pkl
+|   |-- preprocessor.pkl
+|   |-- feature_builder.pkl
+|-- reports/
+|   |-- figures/                  # 20+ visualizations
+|   |-- tables/                   # Evaluation reports
+|-- src/
+|   |-- data/preprocessing.py
+|   |-- features/build_features.py
+|   |-- models/
+|   |   |-- train_model.py
+|   |   |-- evaluate_model.py
+|   |   |-- predict_model.py
+|   |-- visualization/visualize.py
+|-- deployment/app.py              # Streamlit app
+\end{verbatim}
+
+\end{document}

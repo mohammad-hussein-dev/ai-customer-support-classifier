@@ -1,0 +1,4 @@
+Model,Accuracy,Precision,Recall,F1_Weighted,F1_Macro
+logistic_regression,1.0,1.0,1.0,1.0,1.0
+svm,1.0,1.0,1.0,1.0,1.0
+naive_bayes,1.0,1.0,1.0,1.0,1.0

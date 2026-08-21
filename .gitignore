@@ -1,0 +1,57 @@
+# Byte-compiled
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+venv/
+.env/
+.venv/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Data & models
+data/raw/*.csv
+data/processed/*.csv
+data/external/*.csv
+models/baseline/*.pkl
+models/baseline/*.joblib
+models/production/*.pkl
+models/production/*.joblib
+
+# Logs
+logs/*.log
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# LaTeX
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.out
+*.synctex.gz
+*.toc
+*.pdf
+
+# Reports (keep source, ignore generated)
+reports/*.pdf
+
+# MLflow
+mlruns/

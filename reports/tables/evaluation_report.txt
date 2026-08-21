@@ -1,0 +1,27 @@
+============================================================
+MODEL EVALUATION REPORT
+============================================================
+
+Accuracy:           1.0000
+Precision (weighted): 1.0000
+Recall (weighted):    1.0000
+F1 (weighted):        1.0000
+F1 (macro):           1.0000
+
+Mean Confidence:      0.9996
+Median Confidence:    0.9999
+
+------------------------------------------------------------
+CLASSIFICATION REPORT
+------------------------------------------------------------
+                   precision    recall  f1-score   support
+
+          Account       1.00      1.00      1.00       200
+          Billing       1.00      1.00      1.00       360
+           Refund       1.00      1.00      1.00       140
+Technical Support       1.00      1.00      1.00       300
+
+         accuracy                           1.00      1000
+        macro avg       1.00      1.00      1.00      1000
+     weighted avg       1.00      1.00      1.00      1000
+

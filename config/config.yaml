@@ -1,0 +1,52 @@
+project:
+  name: "ai-customer-support-classifier"
+  version: "1.0.0"
+  author: "Mohammad-Hussein"
+  description: "AI-powered customer support ticket classification system"
+
+paths:
+  data_raw: "data/raw"
+  data_processed: "data/processed"
+  models: "models"
+  reports: "reports"
+  logs: "logs"
+
+data:
+  dataset_name: "tickets.csv"
+  target_column: "category"
+  text_column: "text"
+  test_size: 0.2
+  validation_size: 0.1
+  random_state: 42
+
+preprocessing:
+  lowercase: true
+  remove_punctuation: true
+  remove_stopwords: true
+  lemmatize: true
+  min_word_length: 2
+  max_word_length: 20
+
+features:
+  vectorizer: "tfidf"
+  max_features: 10000
+  ngram_range: [1, 2]
+  min_df: 2
+  max_df: 0.95
+
+model:
+  name: "logistic_regression"
+  class_weight: "balanced"
+  C: 1.0
+  max_iter: 1000
+  solver: "lbfgs"
+
+evaluation:
+  metrics: ["accuracy", "precision", "recall", "f1"]
+  average: "weighted"
+  cv_folds: 5
+
+visualization:
+  style: "seaborn-v0_8-whitegrid"
+  palette: "viridis"
+  figure_dpi: 300

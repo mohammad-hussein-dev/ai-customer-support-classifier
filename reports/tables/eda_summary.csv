@@ -1,0 +1,7 @@
+,char_count,char_count,char_count,char_count,word_count,word_count,word_count,word_count,ticket_id
+,mean,std,min,max,mean,std,min,max,count
+category,,,,,,,,,
+Account,81.54,10.68,58,122,14.44,2.38,9,24,1000
+Billing,76.22,14.72,57,134,13.71,3.11,8,23,1800
+Refund,81.9,12.75,50,126,14.55,2.46,9,22,700
+Technical Support,81.8,13.54,60,138,13.2,2.62,9,23,1500

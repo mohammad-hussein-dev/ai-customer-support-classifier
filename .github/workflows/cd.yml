@@ -1,0 +1,22 @@
+name: CD
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t ticket-classifier:${{ github.ref_name }} .
+
+      - name: Test Docker image
+        run: |
+          docker run -d -p 8501:8501 --name test ticket-classifier:${{ github.ref_name }}
+          sleep 10
+          curl -f http://localhost:8501 || exit 1
+          docker stop test
