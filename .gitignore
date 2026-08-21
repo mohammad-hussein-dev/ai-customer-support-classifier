@@ -55,3 +55,9 @@ reports/*.pdf
 
 # MLflow
 mlruns/
+
+# Virtual environments
+venv/
+.env/
+.venv/
+env/
