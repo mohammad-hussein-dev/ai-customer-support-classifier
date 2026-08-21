@@ -1,0 +1,28 @@
+name: Mirror to GitLab
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create GitLab repo if not exists
+        env:
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+        run: |
+          curl -s --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+               --data "name=ai-customer-support-classifier&visibility=public" \
+               "https://gitlab.com/api/v4/projects" || true
+
+      - name: Push to GitLab
+        env:
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+        run: |
+          git remote add gitlab https://oauth2:${GITLAB_TOKEN}@gitlab.com/mohammad-hussein-dev/ai-customer-support-classifier.git || true
+          git push gitlab main --force
