@@ -1,0 +1,36 @@
+{
+  "total_test_samples": 640,
+  "total_errors": 320,
+  "error_rate": 0.5,
+  "top_confusion_pairs": [
+    {
+      "true": "Account",
+      "predicted": "Billing",
+      "count": 94
+    },
+    {
+      "true": "Billing",
+      "predicted": "Account",
+      "count": 76
+    },
+    {
+      "true": "Account",
+      "predicted": "Technical Support",
+      "count": 51
+    },
+    {
+      "true": "Technical Support",
+      "predicted": "Account",
+      "count": 43
+    },
+    {
+      "true": "Technical Support",
+      "predicted": "Billing",
+      "count": 27
+    }
+  ],
+  "recommendations": [
+    "Review Account vs Billing boundary: 94 misclassifications. Consider adding more training data for these classes.",
+    "Refund class has 8 errors. Consider human review for all Refund tickets (low volume, high risk)."
+  ]
+}

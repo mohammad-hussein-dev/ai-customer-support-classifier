@@ -61,3 +61,5 @@ venv/
 .env/
 .venv/
 env/
+.cache/
+*.pyc

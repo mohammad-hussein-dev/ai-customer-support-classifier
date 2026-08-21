@@ -1,0 +1,44 @@
+{
+  "best_model": "SVM",
+  "models": {
+    "LogisticRegression": {
+      "cv_f1_mean": 0.8878932510614451,
+      "cv_f1_std": 0.0060080310030291685,
+      "test_accuracy": 0.8955259975816203,
+      "test_f1_macro": 0.8946927338818829,
+      "test_f1_weighted": 0.8963395784134593,
+      "per_class_f1": {
+        "Account": 0.9089147286821705,
+        "Billing": 0.8905872888173774,
+        "Refund": 0.9518716577540107,
+        "Technical Support": 0.8273972602739726
+      }
+    },
+    "SVM": {
+      "cv_f1_mean": 0.9093878857092349,
+      "cv_f1_std": 0.005246447666828066,
+      "test_accuracy": 0.9226118500604595,
+      "test_f1_macro": 0.9228584260065664,
+      "test_f1_weighted": 0.9227172849609966,
+      "per_class_f1": {
+        "Account": 0.9354686764013189,
+        "Billing": 0.9125506072874494,
+        "Refund": 0.9814814814814815,
+        "Technical Support": 0.8619329388560157
+      }
+    },
+    "RandomForest": {
+      "cv_f1_mean": 0.8208710394779752,
+      "cv_f1_std": 0.009899717445069189,
+      "test_accuracy": 0.8461910519951632,
+      "test_f1_macro": 0.8409286725261828,
+      "test_f1_weighted": 0.8449421572565751,
+      "per_class_f1": {
+        "Account": 0.8701594533029613,
+        "Billing": 0.8221649484536082,
+        "Refund": 0.9157894736842105,
+        "Technical Support": 0.7556008146639511
+      }
+    }
+  }
+}
