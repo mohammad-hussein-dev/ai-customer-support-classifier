@@ -1,187 +1,134 @@
 #!/usr/bin/env python3
-"""
-Build Hybrid Dataset: Banking77 (real, from GitHub) + Synthetic
-Maps 77 banking intents → 4 categories: Account, Billing, Technical, Refund
+"""Build a hybrid dataset with exactly 8 specific Banking77 intents.
+
+This script downloads the Banking77 dataset, filters only the 8 intents
+required for the project, and saves the result as a CSV file.
+No mapping to high-level categories is performed.
 """
 
-import pandas as pd
 import json
-import random
 import os
+import random
 import urllib.request
 from pathlib import Path
+from typing import List, Tuple
 
-random.seed(42)
+import pandas as pd
 
-# ═══════════════════════════════════════════════════════════
-# Mapping 77 Banking77 intents → 4 categories
-# ═══════════════════════════════════════════════════════════
-INTENT_MAP = {
-    # ─── Account (حساب کاربری) ───
-    "activate_my_card": "Account",
-    "age_limit": "Account",
-    "card_about_to_expire": "Account",
-    "card_acceptance": "Account",
-    "card_arrival": "Account",
-    "card_delivery_estimate": "Account",
-    "card_linking": "Account",
-    "contactless_not_working": "Account",
-    "country_support": "Account",
-    "declined_card_payment": "Account",
-    "declined_cash_withdrawal": "Account",
-    "disposable_card_limits": "Account",
-    "edit_personal_details": "Account",
-    "exchange_charge": "Account",
-    "exchange_rate": "Account",
-    "getting_spare_card": "Account",
-    "getting_virtual_card": "Account",
-    "lost_or_stolen_card": "Account",
-    "order_physical_card": "Account",
-    "passcode_forgotten": "Account",
-    "pending_card_payment": "Account",
-    "pending_cash_withdrawal": "Account",
-    "pending_top_up": "Account",
-    "pin_blocked": "Account",
-    "receiving_money": "Account",
-    "supported_cards_and_currencies": "Account",
-    "top_up_limits": "Account",
-    "top_up_reverted": "Account",
-    "unable_to_verify_identity": "Account",
-    "verify_my_identity": "Account",
-    "virtual_card_not_working": "Account",
-    "why_verify_identity": "Account",
-    "wrong_amount_of_cash_received": "Account",
-    
-    # ─── Billing (پرداخت و صورتحساب) ───
-    "balance_not_updated_after_bank_transfer": "Billing",
-    "balance_not_updated_after_cheque_or_cash_deposit": "Billing",
-    "bank_transfer_charge": "Billing",
-    "card_payment_fee_charged": "Billing",
-    "card_payment_wrong_amount": "Billing",
-    "card_payment_not_recognised": "Billing",
-    "card_swallowed": "Billing",
-    "cash_withdrawal_charge": "Billing",
-    "cash_withdrawal_not_recognized": "Billing",
-    "change_pin": "Billing",
-    "compromised_card": "Billing",
-    "declined_transfer": "Billing",
-    "direct_debit_payment_not_recognised": "Billing",
-    "extra_charge_on_statement": "Billing",
-    "failed_transfer": "Billing",
-    "fiat_currency_support": "Billing",
-    "pending_transfer": "Billing",
-    "reverted_bank_transfer": "Billing",
-    "top_up_by_bank_transfer_charge": "Billing",
-    "top_up_by_card_charge": "Billing",
-    "top_up_by_debit_card": "Billing",
-    "transaction_charged_twice": "Billing",
-    "transfer_fee_charged": "Billing",
-    "transfer_into_account": "Billing",
-    "transfer_not_received_by_recipient": "Billing",
-    "transfer_timing": "Billing",
-    "wrong_exchange_rate_for_cash_withdrawal": "Billing",
-    "wrong_recipient": "Billing",
-    
-    # ─── Technical Support (مشکلات فنی) ───
-    "apple_pay_or_google_pay": "Technical Support",
-    "atm_support": "Technical Support",
-    "automatic_top_up": "Technical Support",
-    "beneficiary_not_allowed": "Technical Support",
-    "cancel_transfer": "Technical Support",
-    "exchange_via_app": "Technical Support",
-    "top_up_by_cash_or_cheque": "Technical Support",
-    "top_up_failed": "Technical Support",
-    "verify_top_up": "Technical Support",
-    "visa_or_mastercard": "Technical Support",
-    
-    # ─── Refund (استرداد) ───
-    "request_refund": "Refund",
-    "reverted_card_payment": "Refund",
+# ============================================================================
+# CONSTANTS (Google Style: UPPER_CASE for module-level constants)
+# ============================================================================
+
+# The 8 intents required by the project specification.
+SELECTED_INTENTS: List[str] = [
+    "card_arrival",
+    "card_not_working",
+    "cash_withdrawal_not_recognised",
+    "declined_card_payment",
+    "lost_or_stolen_card",
+    "transaction_charged_twice",
+    "transfer_not_received_by_recipient",
+    "cash_withdrawal_charge",
+]
+
+RANDOM_SEED: int = 42
+NOISE_PROBABILITY: float = 0.15  # 15% chance to apply noise to each ticket
+
+# ----------------------------------------------------------------------------
+# Noise dictionaries (typos, abbreviations, etc.)
+# ----------------------------------------------------------------------------
+
+_TYPOS: dict = {
+    "account": ["acount", "accunt", "accout"],
+    "payment": ["paymnt", "paymet", "pament"],
+    "transfer": ["transfr", "transer", "trnsfer"],
+    "card": ["crd", "cad", "crad"],
+    "charged": ["chaged", "chrged", "chargd"],
+    "refund": ["refnd", "refund"],
+    "please": ["pls", "plz", "plese"],
+    "thanks": ["thx", "tks", "thanx"],
+    "hello": ["hi", "hey", "hii"],
+    "help": ["hlp", "hel", "hep"],
+}
+
+_ABBREVIATIONS: dict = {
+    "as soon as possible": "asap",
+    "by the way": "btw",
+    "for your information": "fyi",
 }
 
 
-def add_realistic_noise(text: str, noise_level: float = 0.15) -> str:
-    """
-    Add realistic noise to simulate real customer tickets.
-    Includes: typos, abbreviations, extra punctuation, casing issues.
-    
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
+def _add_realistic_noise(text: str, noise_level: float = NOISE_PROBABILITY) -> str:
+    """Add realistic noise to a clean text.
+
     Args:
-        text: Clean text from dataset
-        noise_level: Probability of applying noise (0-1)
-    
+        text: Clean text from the dataset.
+        noise_level: Probability (0-1) of applying noise.
+
     Returns:
-        Noisy text string
+        Noisy version of the input text.
     """
     if random.random() > noise_level:
         return text
-    
-    typos = {
-        "account": ["acount", "accunt", "accout"],
-        "payment": ["paymnt", "paymet", "pament"],
-        "transfer": ["transfr", "transer", "trnsfer"],
-        "card": ["crd", "cad", "crad"],
-        "charged": ["chaged", "chrged", "chargd"],
-        "refund": ["refnd", "refund"],
-        "please": ["pls", "plz", "plese"],
-        "thanks": ["thx", "tks", "thanx"],
-        "hello": ["hi", "hey", "hii"],
-        "help": ["hlp", "hel", "hep"],
-    }
-    
+
     words = text.split()
-    noisy_words = []
-    
+    noisy_words: List[str] = []
+
     for word in words:
         w_lower = word.lower()
-        if w_lower in typos and random.random() < 0.3:
-            noisy_words.append(random.choice(typos[w_lower]))
+        if w_lower in _TYPOS and random.random() < 0.3:
+            noisy_words.append(random.choice(_TYPOS[w_lower]))
         else:
             noisy_words.append(word)
-    
-    abbrevs = {
-        "as soon as possible": "asap",
-        "by the way": "btw",
-        "for your information": "fyi",
-    }
-    
+
     result = " ".join(noisy_words)
-    for full, abbr in abbrevs.items():
+
+    # Replace full phrases with abbreviations
+    for full, abbr in _ABBREVIATIONS.items():
         if full in result.lower() and random.random() < 0.2:
             result = result.replace(full, abbr)
-    
+
+    # Extra punctuation and case changes
     if random.random() < 0.2:
         result = result.replace("!", "!!").replace("?", "???")
     if random.random() < 0.15:
         result = result.upper()
     elif random.random() < 0.15:
         result = result.lower()
-    
+
     return result
 
 
+# ============================================================================
+# MAIN DATA LOADING FUNCTIONS
+# ============================================================================
+
 def download_banking77() -> pd.DataFrame:
-    """
-    Download Banking77 dataset directly from GitHub.
-    No external libraries needed — uses urllib (built-in).
+    """Download Banking77 dataset from GitHub and filter the 8 intents.
+
+    Returns:
+        DataFrame with columns: text, category (intent name), source, ticket_id.
     """
     print("📥 Downloading Banking77 from GitHub...")
-    
-    # URLs for raw data
+
     base_url = "https://raw.githubusercontent.com/PolyAI-LDN/task-specific-datasets/master/banking_data"
     train_url = f"{base_url}/train.csv"
     test_url = f"{base_url}/test.csv"
     categories_url = f"{base_url}/categories.json"
-    
+
     cache_dir = Path(".cache/banking77")
     cache_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Download files
+
     files = {
         "train": (train_url, cache_dir / "train.csv"),
         "test": (test_url, cache_dir / "test.csv"),
         "categories": (categories_url, cache_dir / "categories.json"),
     }
-    
+
     for name, (url, path) in files.items():
         if not path.exists():
             print(f"   ⬇️  Downloading {name}.csv...")
@@ -189,85 +136,96 @@ def download_banking77() -> pd.DataFrame:
             print(f"      ✅ Saved to {path}")
         else:
             print(f"   📦 Using cached {name}.csv")
-    
-    # Load categories mapping
-    with open(cache_dir / "categories.json", "r", encoding="utf-8") as f:
-        categories = json.load(f)
-    
+
     # Load train + test
     train_df = pd.read_csv(cache_dir / "train.csv")
     test_df = pd.read_csv(cache_dir / "test.csv")
     combined = pd.concat([train_df, test_df], ignore_index=True)
-    
-    # Map categories
-    combined["category"] = combined["category"].apply(
-        lambda x: INTENT_MAP.get(x, "Account")
-    )
-    
-    # Rename and select
+
+    # 🔥 KEY CHANGE: Keep only the 8 selected intents.
+    # The column 'category' in the raw dataset is the intent name.
+    combined = combined[combined["category"].isin(SELECTED_INTENTS)]
+
+    # Rename columns for consistency
     combined = combined.rename(columns={"text": "text"})
-    combined = combined[["text", "category"]]
     combined["source"] = "banking77_real"
     combined["ticket_id"] = [f"B77_{i:05d}" for i in range(len(combined))]
-    
-    print(f"   ✅ Loaded {len(combined)} real samples")
+
+    print(f"   ✅ Loaded {len(combined)} real samples (filtered to 8 intents)")
     print("   📊 Distribution:")
-    for cat, count in combined["category"].value_counts().items():
-        print(f"      {cat}: {count}")
-    
+    for intent, count in combined["category"].value_counts().items():
+        print(f"      {intent}: {count}")
+
     return combined
 
 
 def load_synthetic() -> pd.DataFrame:
-    """Load existing synthetic dataset (Refund only)."""
+    """Load synthetic data (if any) and filter only if it matches the 8 intents.
+
+    Returns:
+        DataFrame with synthetic samples, or empty DataFrame if none found.
+    """
     synthetic_path = Path("data/raw/tickets.csv")
     if not synthetic_path.exists():
-        print("   ⚠️  Synthetic data not found, skipping...")
+        print("   ⚠️  No synthetic data found. Skipping.")
         return pd.DataFrame()
-    
+
     df = pd.read_csv(synthetic_path)
     if "text" not in df.columns:
         df = df.rename(columns={"text": "text"})
-    df = df[["text", "category"]]
+
+    # If the synthetic data has a 'category' column, keep only those that are
+    # in the 8 selected intents (likely "Refund" is not, so it will be dropped).
+    if "category" in df.columns:
+        df = df[df["category"].isin(SELECTED_INTENTS)]
+
     df["source"] = "synthetic"
     df["ticket_id"] = [f"SYN_{i:05d}" for i in range(len(df))]
-    df = df[df["category"] == "Refund"]
-    
-    print(f"   ✅ Loaded {len(df)} synthetic Refund samples")
+
+    print(f"   ✅ Loaded {len(df)} synthetic samples matching the 8 intents")
     return df
 
 
 def build_hybrid() -> pd.DataFrame:
-    """Combine real + synthetic data with noise injection."""
+    """Combine real + synthetic data, add noise, and save.
+
+    Returns:
+        The final hybrid DataFrame.
+    """
     print("=" * 60)
-    print("🔬 Building Hybrid Dataset")
+    print("🔬 Building Hybrid Dataset (8 Banking77 Intents)")
     print("=" * 60)
-    
+
+    random.seed(RANDOM_SEED)
+
     real_df = download_banking77()
     synth_df = load_synthetic()
-    
-    print("\n🎲 Adding realistic noise (15% probability)...")
+
+    # Add noise to real data (but not synthetic, as it is already noisy)
+    print(f"\n🎲 Adding realistic noise ({NOISE_PROBABILITY*100:.0f}% probability)...")
     real_df["text"] = real_df["text"].apply(
-        lambda x: add_realistic_noise(x, noise_level=0.15)
+        lambda x: _add_realistic_noise(x, noise_level=NOISE_PROBABILITY)
     )
-    
+
+    # Combine
     hybrid = pd.concat([real_df, synth_df], ignore_index=True)
     hybrid["ticket_id"] = [f"TICKET_{i:06d}" for i in range(len(hybrid))]
-    hybrid = hybrid.sample(frac=1, random_state=42).reset_index(drop=True)
-    
+    hybrid = hybrid.sample(frac=1, random_state=RANDOM_SEED).reset_index(drop=True)
+
+    # Save
     os.makedirs("data/raw", exist_ok=True)
     hybrid.to_csv("data/raw/hybrid_dataset.csv", index=False)
-    
+
     print("\n" + "=" * 60)
     print("✅ Hybrid Dataset Saved!")
     print(f"   📁 Path: data/raw/hybrid_dataset.csv")
     print(f"   📊 Total: {len(hybrid)} samples")
-    print("\n   Category Distribution:")
-    for cat, count in hybrid["category"].value_counts().items():
+    print("\n   Intent Distribution (exactly 8 intents):")
+    for intent, count in hybrid["category"].value_counts().items():
         pct = count / len(hybrid) * 100
-        print(f"      {cat}: {count} ({pct:.1f}%)")
+        print(f"      {intent}: {count} ({pct:.1f}%)")
     print("=" * 60)
-    
+
     return hybrid
 
 

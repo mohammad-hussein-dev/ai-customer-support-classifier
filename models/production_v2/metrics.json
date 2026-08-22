@@ -2,42 +2,54 @@
   "best_model": "SVM",
   "models": {
     "LogisticRegression": {
-      "cv_f1_mean": 0.8878932510614451,
-      "cv_f1_std": 0.0060080310030291685,
-      "test_accuracy": 0.8955259975816203,
-      "test_f1_macro": 0.8946927338818829,
-      "test_f1_weighted": 0.8963395784134593,
+      "cv_f1_mean": 0.9215800900385848,
+      "cv_f1_std": 0.013640649029250771,
+      "test_accuracy": 0.9246119733924612,
+      "test_f1_macro": 0.9184946830812679,
+      "test_f1_weighted": 0.9247564054310974,
       "per_class_f1": {
-        "Account": 0.9089147286821705,
-        "Billing": 0.8905872888173774,
-        "Refund": 0.9518716577540107,
-        "Technical Support": 0.8273972602739726
+        "card_arrival": 0.912,
+        "card_not_working": 0.8260869565217391,
+        "cash_withdrawal_charge": 0.984375,
+        "cash_withdrawal_not_recognised": 0.9137931034482759,
+        "declined_card_payment": 0.8990825688073395,
+        "lost_or_stolen_card": 0.8831168831168831,
+        "transaction_charged_twice": 0.9763779527559056,
+        "transfer_not_received_by_recipient": 0.953125
       }
     },
     "SVM": {
-      "cv_f1_mean": 0.9093878857092349,
-      "cv_f1_std": 0.005246447666828066,
-      "test_accuracy": 0.9226118500604595,
-      "test_f1_macro": 0.9228584260065664,
-      "test_f1_weighted": 0.9227172849609966,
+      "cv_f1_mean": 0.9296020330590331,
+      "cv_f1_std": 0.004533298877134763,
+      "test_accuracy": 0.9334811529933481,
+      "test_f1_macro": 0.9286574192124051,
+      "test_f1_weighted": 0.9339056562238603,
       "per_class_f1": {
-        "Account": 0.9354686764013189,
-        "Billing": 0.9125506072874494,
-        "Refund": 0.9814814814814815,
-        "Technical Support": 0.8619329388560157
+        "card_arrival": 0.890625,
+        "card_not_working": 0.8863636363636364,
+        "cash_withdrawal_charge": 0.9767441860465116,
+        "cash_withdrawal_not_recognised": 0.8983050847457628,
+        "declined_card_payment": 0.9557522123893806,
+        "lost_or_stolen_card": 0.8767123287671232,
+        "transaction_charged_twice": 0.9841269841269841,
+        "transfer_not_received_by_recipient": 0.9606299212598425
       }
     },
     "RandomForest": {
-      "cv_f1_mean": 0.8208710394779752,
-      "cv_f1_std": 0.009899717445069189,
-      "test_accuracy": 0.8461910519951632,
-      "test_f1_macro": 0.8409286725261828,
-      "test_f1_weighted": 0.8449421572565751,
+      "cv_f1_mean": 0.8888605892827046,
+      "cv_f1_std": 0.019452957888480376,
+      "test_accuracy": 0.8802660753880266,
+      "test_f1_macro": 0.871511727731082,
+      "test_f1_weighted": 0.8806855051811601,
       "per_class_f1": {
-        "Account": 0.8701594533029613,
-        "Billing": 0.8221649484536082,
-        "Refund": 0.9157894736842105,
-        "Technical Support": 0.7556008146639511
+        "card_arrival": 0.875,
+        "card_not_working": 0.8085106382978723,
+        "cash_withdrawal_charge": 0.9763779527559056,
+        "cash_withdrawal_not_recognised": 0.8547008547008547,
+        "declined_card_payment": 0.8333333333333334,
+        "lost_or_stolen_card": 0.7733333333333333,
+        "transaction_charged_twice": 0.9516129032258065,
+        "transfer_not_received_by_recipient": 0.8992248062015504
       }
     }
   }

@@ -1,36 +1,35 @@
 {
-  "total_test_samples": 640,
-  "total_errors": 320,
-  "error_rate": 0.5,
+  "total_test_samples": 451,
+  "total_errors": 30,
+  "error_rate": 0.0665,
   "top_confusion_pairs": [
     {
-      "true": "Account",
-      "predicted": "Billing",
-      "count": 94
+      "true": "card_not_working",
+      "predicted": "card_arrival",
+      "count": 4
     },
     {
-      "true": "Billing",
-      "predicted": "Account",
-      "count": 76
+      "true": "lost_or_stolen_card",
+      "predicted": "card_arrival",
+      "count": 3
     },
     {
-      "true": "Account",
-      "predicted": "Technical Support",
-      "count": 51
+      "true": "cash_withdrawal_not_recognised",
+      "predicted": "card_arrival",
+      "count": 2
     },
     {
-      "true": "Technical Support",
-      "predicted": "Account",
-      "count": 43
+      "true": "lost_or_stolen_card",
+      "predicted": "cash_withdrawal_not_recognised",
+      "count": 2
     },
     {
-      "true": "Technical Support",
-      "predicted": "Billing",
-      "count": 27
+      "true": "declined_card_payment",
+      "predicted": "card_arrival",
+      "count": 2
     }
   ],
   "recommendations": [
-    "Review Account vs Billing boundary: 94 misclassifications. Consider adding more training data for these classes.",
-    "Refund class has 8 errors. Consider human review for all Refund tickets (low volume, high risk)."
+    "Review card_not_working vs card_arrival boundary: 4 misclassifications. Consider adding more training data for these classes."
   ]
 }

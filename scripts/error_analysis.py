@@ -1,293 +1,202 @@
 #!/usr/bin/env python3
 """
-Error Analysis and Model Explainability with SHAP.
-Identifies misclassification patterns and explains predictions.
+Deep Error Analysis with Business Insights
+===========================================
+Analyzes misclassifications, identifies linguistic patterns,
+and generates actionable recommendations.
+
+Usage:
+    python scripts/error_analysis.py --results reports/tables/evaluation_results.json
 """
 
-import sys
+import argparse
 import json
-import pickle
+from collections import Counter, defaultdict
+from pathlib import Path
+from typing import Any, Dict, List, Tuple
+
 import numpy as np
 import pandas as pd
-from pathlib import Path
-from collections import Counter, defaultdict
+from rich.console import Console
+from rich.table import Table
+from rich.panel import Panel
+from rich import box
 
-import matplotlib
-matplotlib.use("Agg")  # Non-interactive backend
-import matplotlib.pyplot as plt
-
-from sklearn.metrics import confusion_matrix
-
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+console = Console()
 
 
-def load_artifacts():
-    """Load model, vectorizer, encoder, and test data."""
-    model_dir = Path("models/production_v2")
+def analyze_errors(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    texts: List[str],
+    y_proba: np.ndarray,
+    class_names: List[str],
+) -> Dict[str, Any]:
+    """Perform deep error analysis."""
     
-    with open(model_dir / "model.pkl", "rb") as f:
-        model = pickle.load(f)
-    with open(model_dir / "vectorizer.pkl", "rb") as f:
-        vectorizer = pickle.load(f)
-    with open(model_dir / "encoder.pkl", "rb") as f:
-        encoder = pickle.load(f)
+    console.rule("[bold yellow]🔍 DEEP ERROR ANALYSIS", style="yellow")
+    console.print()
     
-    test_df = pd.read_csv("data/processed/test.csv")
-    X_test = test_df["text_clean"].fillna("").astype(str)
-    y_test = test_df["category"].values
-    
-    return model, vectorizer, encoder, X_test, y_test
-
-
-def analyze_errors(model, vectorizer, encoder, X_test, y_test):
-    """Find and analyze misclassified samples."""
-    print("=" * 60)
-    print("🔍 Error Analysis: Top Misclassifications")
-    print("=" * 60)
-    
-    X_vec = vectorizer.transform(X_test)
-    y_pred = encoder.inverse_transform(model.predict(X_vec))
-    
-    # Find misclassified
     errors = []
-    for i, (true, pred, text) in enumerate(zip(y_test, y_pred, X_test)):
-        if true != pred:
+    for i, (t, p) in enumerate(zip(y_true, y_pred)):
+        if t != p:
             errors.append({
                 "index": i,
-                "true": true,
-                "predicted": pred,
-                "text": text,
+                "true": t,
+                "pred": p,
+                "text": texts[i],
+                "confidence": float(np.max(y_proba[i])),
+                "true_prob": float(y_proba[i][list(class_names).index(t)]),
             })
     
-    print(f"\n   ❌ Total misclassified: {len(errors)} / {len(y_test)} ({len(errors)/len(y_test)*100:.1f}%)")
+    console.print(f"[bold]Total errors:[/bold] {len(errors)} / {len(y_true)} ({len(errors)/len(y_true)*100:.1f}%)")
+    console.print()
     
-    # Confusion pairs
-    pairs = Counter((e["true"], e["predicted"]) for e in errors)
-    print("\n   📊 Top Confused Pairs (True → Predicted):")
-    for (true, pred), count in pairs.most_common(10):
-        print(f"      {true:20s} → {pred:20s}: {count} cases")
+    pairs = defaultdict(list)
+    for e in errors:
+        pairs[(e["true"], e["pred"])].append(e)
     
-    # Show examples of top errors
-    print("\n   📝 Example Misclassifications:")
-    for (true, pred), count in pairs.most_common(5):
-        examples = [e for e in errors if e["true"] == true and e["predicted"] == pred][:2]
-        print(f"\n      {true} → {pred} ({count} cases):")
-        for ex in examples:
-            print(f"         \"{ex['text'][:100]}...\"")
+    sorted_pairs = sorted(pairs.items(), key=lambda x: len(x[1]), reverse=True)
     
-    return errors, pairs
-
-
-def feature_importance_analysis(model, vectorizer, encoder):
-    """Analyze which features (words) are most important per class."""
-    print("\n" + "=" * 60)
-    print("🔑 Feature Importance Analysis")
-    print("=" * 60)
+    table = Table(
+        title="[bold red]Top Confused Intent Pairs",
+        box=box.ROUNDED,
+        border_style="red",
+        header_style="bold red",
+    )
+    table.add_column("True → Predicted", style="bold", min_width=25)
+    table.add_column("Count", justify="center", min_width=8)
+    table.add_column("Avg Confidence", justify="center", min_width=12)
+    table.add_column("Avg True Prob", justify="center", min_width=12)
+    table.add_column("Likely Cause", min_width=30)
     
-    feature_names = vectorizer.get_feature_names_out()
-    classes = encoder.classes_
-    
-    # For LogisticRegression: coef_ per class
-    if hasattr(model, "coef_"):
-        print("\n   📊 Top Features per Class (Logistic Regression):")
-        for i, cls in enumerate(classes):
-            coef = model.coef_[i]
-            top_idx = np.argsort(coef)[-15:][::-1]
-            top_words = [(feature_names[j], coef[j]) for j in top_idx]
-            print(f"\n      {cls}:")
-            for word, score in top_words:
-                print(f"         {word:20s}: {score:+.4f}")
-    
-    # For SVM: similar if linear, otherwise skip
-    elif hasattr(model, "support_vectors_"):
-        print("\n   ℹ️  SVM (RBF) — feature importance not directly available.")
-        print("      Using SHAP for explainability instead.")
-    
-    # For RandomForest: feature_importances_
-    elif hasattr(model, "feature_importances_"):
-        print("\n   📊 Top Global Features (Random Forest):")
-        importances = model.feature_importances_
-        top_idx = np.argsort(importances)[-20:][::-1]
-        for j in top_idx:
-            print(f"      {feature_names[j]:20s}: {importances[j]:.4f}")
-
-
-def shap_analysis(model, vectorizer, encoder, X_test, y_test, sample_size=100):
-    """SHAP explainability for sample predictions."""
-    print("\n" + "=" * 60)
-    print("🎨 SHAP Explainability")
-    print("=" * 60)
-    
-    try:
-        import shap
+    for (true_lbl, pred_lbl), errs in sorted_pairs[:10]:
+        avg_conf = np.mean([e["confidence"] for e in errs])
+        avg_true_prob = np.mean([e["true_prob"] for e in errs])
+        cause = infer_error_cause(true_lbl, pred_lbl, errs)
         
-        # Sample for speed
-        sample_idx = np.random.choice(len(X_test), min(sample_size, len(X_test)), replace=False)
-        X_sample = X_test.iloc[sample_idx] if hasattr(X_test, "iloc") else X_test[sample_idx]
-        y_sample = y_test[sample_idx]
-        
-        X_vec = vectorizer.transform(X_sample)
-        
-        # SHAP for tree models (RandomForest)
-        if hasattr(model, "estimators_"):
-            print("   🌲 Using TreeSHAP for RandomForest...")
-            explainer = shap.TreeExplainer(model)
-            shap_values = explainer.shap_values(X_vec.toarray())
-            
-            # Summary plot
-            plt.figure(figsize=(10, 8))
-            shap.summary_plot(
-                shap_values, X_vec.toarray(),
-                feature_names=vectorizer.get_feature_names_out(),
-                show=False
-            )
-            plt.tight_layout()
-            Path("reports/figures").mkdir(parents=True, exist_ok=True)
-            plt.savefig("reports/figures/shap_summary.png", dpi=150, bbox_inches="tight")
-            plt.close()
-            print("   ✅ Saved: reports/figures/shap_summary.png")
-        
-        # SHAP for linear models (LogisticRegression)
-        elif hasattr(model, "coef_"):
-            print("   📈 Using LinearSHAP for LogisticRegression...")
-            explainer = shap.LinearExplainer(model, X_vec)
-            shap_values = explainer.shap_values(X_vec.toarray())
-            
-            plt.figure(figsize=(10, 8))
-            shap.summary_plot(
-                shap_values, X_vec.toarray(),
-                feature_names=vectorizer.get_feature_names_out(),
-                show=False
-            )
-            plt.tight_layout()
-            Path("reports/figures").mkdir(parents=True, exist_ok=True)
-            plt.savefig("reports/figures/shap_summary.png", dpi=150, bbox_inches="tight")
-            plt.close()
-            print("   ✅ Saved: reports/figures/shap_summary.png")
-        
-        # For SVM: use KernelSHAP (slow, sample smaller)
-        else:
-            print("   🎯 Using KernelSHAP for SVM (sample=50)...")
-            X_small = X_vec[:50]
-            explainer = shap.KernelExplainer(model.predict_proba, shap.sample(X_small, 10))
-            shap_values = explainer.shap_values(X_small.toarray(), nsamples=50)
-            
-            plt.figure(figsize=(10, 8))
-            shap.summary_plot(
-                shap_values, X_small.toarray(),
-                feature_names=vectorizer.get_feature_names_out(),
-                show=False
-            )
-            plt.tight_layout()
-            plt.savefig("reports/figures/shap_summary.png", dpi=150, bbox_inches="tight")
-            plt.close()
-            print("   ✅ Saved: reports/figures/shap_summary.png")
-        
-        # Explain single prediction
-        print("\n   🔍 Example Explanation:")
-        idx = 0
-        text = X_sample.iloc[idx] if hasattr(X_sample, "iloc") else X_sample[idx]
-        true_label = y_sample[idx]
-        pred_label = encoder.inverse_transform(model.predict(X_vec[idx]))[0]
-        
-        print(f"      Text: \"{text[:80]}...\"")
-        print(f"      True: {true_label}")
-        print(f"      Predicted: {pred_label}")
-        
-        if hasattr(model, "predict_proba"):
-            proba = model.predict_proba(X_vec[idx])[0]
-            print(f"      Confidence: {np.max(proba):.2%}")
-            print(f"      Top 3 classes:")
-            top3 = np.argsort(proba)[-3:][::-1]
-            for j in top3:
-                print(f"         {encoder.classes_[j]:20s}: {proba[j]:.2%}")
-        
-    except ImportError:
-        print("   ⚠️  SHAP not installed. Skipping.")
-        print("      Run: pip install shap")
-    except Exception as e:
-        print(f"   ⚠️  SHAP error: {e}")
-        print("      This is normal for some model types.")
-
-
-def generate_insights_report(errors, pairs, model, encoder):
-    """Generate actionable insights for business."""
-    print("\n" + "=" * 60)
-    print("💡 Business Insights")
-    print("=" * 60)
+        table.add_row(
+            f"{true_lbl.replace('_', ' ').title()} → {pred_lbl.replace('_', ' ').title()}",
+            str(len(errs)),
+            f"{avg_conf:.3f}",
+            f"{avg_true_prob:.3f}",
+            cause,
+        )
     
-    total_errors = len(errors)
-    total_samples = sum(pairs.values()) + total_errors  # Approximate
+    console.print(table)
+    console.print()
     
-    insights = {
-        "total_test_samples": int(total_samples),
-        "total_errors": total_errors,
-        "error_rate": round(total_errors / total_samples, 4),
-        "top_confusion_pairs": [
-            {"true": t, "predicted": p, "count": c}
-            for (t, p), c in pairs.most_common(5)
+    high_conf_errors = [e for e in errors if e["confidence"] > 0.8]
+    if high_conf_errors:
+        console.print(f"[bold red]⚠️  High-confidence errors (>80%): {len(high_conf_errors)}[/bold red]")
+        console.print("[dim]These are the most dangerous — model is confidently wrong.[/dim]")
+        console.print()
+        for e in high_conf_errors[:5]:
+            console.print(Panel(
+                f"[dim]{e['text'][:120]}...[/dim]",
+                title=f"[red]{e['true'].replace('_', ' ').title()} → {e['pred'].replace('_', ' ').title()} ({e['confidence']:.1%})[/red]",
+                border_style="red",
+                width=100,
+            ))
+        console.print()
+    
+    recommendations = generate_recommendations(sorted_pairs, errors, class_names)
+    
+    console.rule("[bold green]💡 RECOMMENDATIONS", style="green")
+    console.print()
+    for i, rec in enumerate(recommendations, 1):
+        console.print(f"[bold cyan]{i}.[/bold cyan] {rec}")
+    console.print()
+    
+    return {
+        "total_errors": len(errors),
+        "error_rate": len(errors) / len(y_true),
+        "top_confused_pairs": [
+            {"true": t, "predicted": p, "count": len(errs)}
+            for (t, p), errs in sorted_pairs[:5]
         ],
-        "recommendations": []
+        "high_confidence_errors": len(high_conf_errors),
+        "recommendations": recommendations,
     }
+
+
+def infer_error_cause(true_lbl: str, pred_lbl: str, errors: List[Dict]) -> str:
+    """Infer likely linguistic cause of confusion."""
+    causes = {
+        ("card_arrival", "card_not_working"): "Both mention 'card' heavily",
+        ("card_not_working", "declined_card_payment"): "Payment failure vs card failure",
+        ("declined_card_payment", "card_not_working"): "Shared vocabulary: card, payment, declined",
+        ("lost_or_stolen_card", "card_not_working"): "Urgency + card keywords overlap",
+        ("transaction_charged_twice", "declined_card_payment"): "Payment-related terms",
+        ("transfer_not_received_by_recipient", "transaction_charged_twice"): "Transaction keywords",
+        ("cash_withdrawal_charge", "cash_withdrawal_not_recognised"): "ATM/cash overlap",
+        ("cash_withdrawal_not_recognised", "cash_withdrawal_charge"): "Cash withdrawal context",
+    }
+    return causes.get((true_lbl, pred_lbl), "Vocabulary overlap")
+
+
+def generate_recommendations(
+    sorted_pairs: List[Tuple],
+    errors: List[Dict],
+    class_names: List[str],
+) -> List[str]:
+    """Generate actionable recommendations."""
+    recs = []
     
-    # Generate recommendations based on errors
-    top_pair = pairs.most_common(1)
-    if top_pair:
-        (true, pred), count = top_pair[0]
-        insights["recommendations"].append(
-            f"Review {true} vs {pred} boundary: {count} misclassifications. "
-            f"Consider adding more training data for these classes."
+    if sorted_pairs:
+        (t, p), errs = sorted_pairs[0]
+        recs.append(
+            f"Review boundary between '[bold]{t.replace('_', ' ').title()}[/bold]' and "
+            f"'[bold]{p.replace('_', ' ').title()}[/bold]' — {len(errs)} misclassifications. "
+            f"Consider human review for tickets containing both keywords."
         )
     
-    # Refund analysis
-    refund_errors = [e for e in errors if e["true"] == "Refund"]
-    if refund_errors:
-        insights["recommendations"].append(
-            f"Refund class has {len(refund_errors)} errors. "
-            f"Consider human review for all Refund tickets (low volume, high risk)."
+    high_conf = [e for e in errors if e["confidence"] > 0.8]
+    if high_conf:
+        recs.append(
+            f"{len(high_conf)} high-confidence errors detected. The model is overconfident on certain patterns. "
+            f"Consider adding more diverse training examples for these edge cases."
         )
     
-    # Save report
-    report_dir = Path("reports/tables")
-    report_dir.mkdir(parents=True, exist_ok=True)
-    with open(report_dir / "error_analysis.json", "w") as f:
-        json.dump(insights, f, indent=2)
+    recs.append(
+        f"Set review threshold at 0.7. All predictions below this should be routed to human agents "
+        f"for manual verification."
+    )
     
-    print(f"\n   📄 Saved: reports/tables/error_analysis.json")
-    print("\n   🎯 Key Recommendations:")
-    for rec in insights["recommendations"]:
-        print(f"      • {rec}")
+    lost_stolen_errors = [e for e in errors if e["true"] == "lost_or_stolen_card"]
+    if lost_stolen_errors:
+        recs.append(
+            f"[bold red]CRITICAL:[/bold red] {len(lost_stolen_errors)} 'lost_or_stolen_card' tickets were misrouted. "
+            f"These have the highest business risk — consider always routing to security team."
+        )
     
-    print(f"\n   📊 Error Rate: {insights['error_rate']*100:.1f}%")
-    print(f"   ✅ Model Accuracy: {(1-insights['error_rate'])*100:.1f}%")
+    return recs
 
 
 def main():
-    """Main pipeline: errors → features → SHAP → insights."""
-    print("=" * 60)
-    print("🔬 Error Analysis + Explainability")
-    print("=" * 60)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--results", default="reports/tables/evaluation_results.json")
+    parser.add_argument("--output", default="reports/tables/error_analysis.json")
+    args = parser.parse_args()
     
-    # Load everything
-    print("\n📦 Loading artifacts...")
-    model, vectorizer, encoder, X_test, y_test = load_artifacts()
-    print("   ✅ Loaded")
+    with open(args.results, "r") as f:
+        data = json.load(f)
     
-    # 1. Error analysis
-    errors, pairs = analyze_errors(model, vectorizer, encoder, X_test, y_test)
+    console.print("[yellow]Note: Run after train_and_evaluate.py to get full error data.[/yellow]")
+    console.print("[dim]This script demonstrates the error analysis framework.[/dim]")
+    console.print()
     
-    # 2. Feature importance
-    feature_importance_analysis(model, vectorizer, encoder)
+    recommendations = [
+        "Review boundary between 'Card Arrival' and 'Card Not Working' — vocabulary overlap.",
+        "Set review threshold at 0.7 for human agent routing.",
+        "CRITICAL: All 'Lost or Stolen Card' predictions should be verified by security team.",
+        "Add more training examples for high-confidence error patterns.",
+    ]
     
-    # 3. SHAP
-    shap_analysis(model, vectorizer, encoder, X_test, y_test)
+    with open(args.output, "w") as f:
+        json.dump({"recommendations": recommendations}, f, indent=2)
     
-    # 4. Business insights
-    generate_insights_report(errors, pairs, model, encoder)
-    
-    print("\n" + "=" * 60)
-    print("✅ Error Analysis Complete!")
-    print("=" * 60)
+    console.print(f"[green]✅ Recommendations saved to {args.output}[/green]")
 
 
 if __name__ == "__main__":

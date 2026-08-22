@@ -1,23 +1,30 @@
-project:
-  name: "ai-customer-support-classifier"
-  version: "1.0.0"
-  author: "Mohammad-Hussein"
-  description: "AI-powered customer support ticket classification system"
+# Banking Intent Classifier Configuration
+# =======================================
 
-paths:
-  data_raw: "data/raw"
-  data_processed: "data/processed"
-  models: "models"
-  reports: "reports"
-  logs: "logs"
+project:
+  name: "AI Customer Support Ticket Classifier"
+  version: "2.0.0"
+  author: "Mohammad Hussein"
+  description: "Banking intent classification with TF-IDF + Logistic Regression"
 
 data:
-  dataset_name: "tickets.csv"
-  target_column: "category"
-  text_column: "text"
+  selected_intents:
+    - card_arrival
+    - card_not_working
+    - cash_withdrawal_not_recognised
+    - declined_card_payment
+    - lost_or_stolen_card
+    - transaction_charged_twice
+    - transfer_not_received_by_recipient
+    - cash_withdrawal_charge
+  
   test_size: 0.2
-  validation_size: 0.1
   random_state: 42
+  
+  business_critical:
+    - lost_or_stolen_card
+    - declined_card_payment
+    - transaction_charged_twice
 
 preprocessing:
   lowercase: true
@@ -28,25 +35,27 @@ preprocessing:
   max_word_length: 20
 
 features:
-  vectorizer: "tfidf"
-  max_features: 10000
+  max_features: 5000
   ngram_range: [1, 2]
   min_df: 2
   max_df: 0.95
+  sublinear_tf: true
 
 model:
   name: "logistic_regression"
-  class_weight: "balanced"
-  C: 1.0
-  max_iter: 1000
-  solver: "lbfgs"
+  params:
+    C: 1.0
+    class_weight: "balanced"
+    max_iter: 1000
+    random_state: 42
+    n_jobs: -1
 
 evaluation:
-  metrics: ["accuracy", "precision", "recall", "f1"]
-  average: "weighted"
+  review_threshold: 0.7
   cv_folds: 5
-
-visualization:
-  style: "seaborn-v0_8-whitegrid"
-  palette: "viridis"
-  figure_dpi: 300
+  
+output:
+  model_dir: "models/production_v2"
+  reports_dir: "reports"
+  figures_dir: "reports/figures"
+  tables_dir: "reports/tables"

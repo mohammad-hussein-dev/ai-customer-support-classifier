@@ -63,3 +63,16 @@ venv/
 env/
 .cache/
 *.pyc
+*.aux
+*.log
+*.toc
+*.lof
+*.lot
+*.out
+*.synctex.gz
+*.upa
+*.upb
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
