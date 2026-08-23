@@ -7,22 +7,39 @@ on:
 jobs:
   mirror:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      # Checkout the complete Git history from GitHub
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # Create the GitLab repository if it does not already exist.
+      # The GitLab Personal Access Token is stored securely in:
+      # GitHub → Settings → Secrets and variables → Actions
+      # Secret name: GITLAB_TOKEN
       - name: Create GitLab repo if not exists
         env:
           GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
         run: |
-          curl -s --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
-               --data "name=ai-customer-support-classifier&visibility=public" \
-               "https://gitlab.com/api/v4/projects" || true
+          curl --fail-with-body --silent --show-error \
+            --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+            --data "name=ai-customer-support-classifier&visibility=public" \
+            "https://gitlab.com/api/v4/projects" || true
 
+      # Add GitLab as the mirror destination.
+      # IMPORTANT: Never put the actual glpat-* token directly in this file.
+      - name: Configure GitLab remote
+        env:
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+        run: |
+          git remote add gitlab \
+            "https://oauth2:${GITLAB_TOKEN}@gitlab.com/mohammad-hussein-dev/ai-customer-support-classifier.git"
+
+      # Mirror the main branch from GitHub to GitLab.
       - name: Push to GitLab
         env:
           GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
         run: |
-          git remote add gitlab https://oauth2:${GITLAB_TOKEN}@gitlab.com/mohammad-hussein-dev/ai-customer-support-classifier.git || true
           git push gitlab main --force
