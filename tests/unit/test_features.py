@@ -1,6 +1,5 @@
 """Unit tests for feature engineering."""
 
-import numpy as np
 from scipy.sparse import csr_matrix
 
 from src.features.build_features import FeatureBuilder

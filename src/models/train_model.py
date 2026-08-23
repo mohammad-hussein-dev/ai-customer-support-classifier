@@ -73,7 +73,8 @@ class ModelTrainer:
         self.model = model_cls(**self.model_params)
         logger.info(
             "ModelTrainer: %s with params %s",
-            model_name, self.model_params,
+            model_name,
+            self.model_params,
         )
 
     def cross_validate(
@@ -93,7 +94,12 @@ class ModelTrainer:
             Dictionary with cross-validation scores.
         """
         if scoring is None:
-            scoring = ["accuracy", "precision_weighted", "recall_weighted", "f1_weighted"]
+            scoring = [
+                "accuracy",
+                "precision_weighted",
+                "recall_weighted",
+                "f1_weighted",
+            ]
 
         cv = StratifiedKFold(
             n_splits=self.cv_folds,
@@ -104,7 +110,9 @@ class ModelTrainer:
         logger.info("Starting %d-fold stratified cross-validation", self.cv_folds)
 
         self.cv_results = cross_validate(
-            self.model, X, y,
+            self.model,
+            X,
+            y,
             cv=cv,
             scoring=scoring,
             return_train_score=True,
@@ -117,7 +125,9 @@ class ModelTrainer:
             std_score = np.std(self.cv_results[f"test_{metric}"])
             logger.info(
                 "CV %s: %.4f (+/- %.4f)",
-                metric, mean_score, std_score,
+                metric,
+                mean_score,
+                std_score,
             )
 
         return self.cv_results
@@ -165,7 +175,9 @@ class ModelTrainer:
                 probs = 1 / (1 + np.exp(-decisions))
                 return np.column_stack([1 - probs, probs])
             else:
-                exp_decisions = np.exp(decisions - np.max(decisions, axis=1, keepdims=True))
+                exp_decisions = np.exp(
+                    decisions - np.max(decisions, axis=1, keepdims=True)
+                )
                 return exp_decisions / np.sum(exp_decisions, axis=1, keepdims=True)
         else:
             logger.warning("Model does not support probability estimates")

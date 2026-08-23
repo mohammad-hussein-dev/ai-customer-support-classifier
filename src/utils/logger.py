@@ -7,7 +7,6 @@ Author: Mohammad Hussein
 """
 
 import logging
-import sys
 from pathlib import Path
 from typing import Optional
 
@@ -24,7 +23,7 @@ def setup_logger(
     logger = logging.getLogger(name)
     logger.setLevel(level)
     logger.handlers.clear()
-    
+
     console_handler = RichHandler(
         rich_tracebacks=True,
         show_path=False,
@@ -35,7 +34,7 @@ def setup_logger(
     console_format = logging.Formatter("%(message)s")
     console_handler.setFormatter(console_format)
     logger.addHandler(console_handler)
-    
+
     if log_file:
         Path(log_file).parent.mkdir(parents=True, exist_ok=True)
         file_handler = logging.FileHandler(log_file)
@@ -46,5 +45,5 @@ def setup_logger(
         )
         file_handler.setFormatter(file_format)
         logger.addHandler(file_handler)
-    
+
     return logger

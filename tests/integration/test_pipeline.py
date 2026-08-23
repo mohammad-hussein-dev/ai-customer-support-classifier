@@ -3,7 +3,6 @@
 import joblib
 import numpy as np
 import pandas as pd
-import pytest
 from sklearn.model_selection import train_test_split
 
 from src.data.preprocessing import TextPreprocessor
@@ -16,15 +15,18 @@ class TestPipeline:
     """End-to-end pipeline integration tests."""
 
     def test_full_pipeline(self, tmp_path):
-        df = pd.DataFrame({
-            "text": [
-                "I was charged twice for my subscription",
-                "The app crashes when I upload files",
-                "I forgot my password and cannot login",
-                "I want a refund for my purchase",
-            ] * 5,
-            "category": ["Billing", "Technical Support", "Account", "Refund"] * 5,
-        })
+        df = pd.DataFrame(
+            {
+                "text": [
+                    "I was charged twice for my subscription",
+                    "The app crashes when I upload files",
+                    "I forgot my password and cannot login",
+                    "I want a refund for my purchase",
+                ]
+                * 5,
+                "category": ["Billing", "Technical Support", "Account", "Refund"] * 5,
+            }
+        )
 
         preprocessor = TextPreprocessor()
         texts_clean = preprocessor.transform(df["text"].tolist())

@@ -4,10 +4,9 @@ Builds TF-IDF and additional text-based features for machine learning models.
 """
 
 import logging
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 import numpy as np
-import pandas as pd
 from scipy.sparse import csr_matrix, hstack
 from sklearn.feature_extraction.text import TfidfVectorizer
 
@@ -63,7 +62,8 @@ class FeatureBuilder:
 
         logger.info(
             "FeatureBuilder initialized: max_features=%d, ngram_range=%s",
-            max_features, ngram_range,
+            max_features,
+            ngram_range,
         )
 
     def fit(self, texts: List[str]) -> "FeatureBuilder":
@@ -163,13 +163,15 @@ class FeatureBuilder:
             exclamation_count = text.count("!")
             question_count = text.count("?")
 
-            features.append([
-                char_count,
-                word_count,
-                avg_word_len,
-                exclamation_count,
-                question_count,
-            ])
+            features.append(
+                [
+                    char_count,
+                    word_count,
+                    avg_word_len,
+                    exclamation_count,
+                    question_count,
+                ]
+            )
 
         return csr_matrix(np.array(features))
 

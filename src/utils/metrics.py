@@ -8,14 +8,11 @@ Author: Mohammad Hussein
 
 import time
 from contextlib import contextmanager
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import numpy as np
 from rich.console import Console
 from rich.table import Table
-from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
-from rich.syntax import Syntax
 from rich import box
 
 console = Console()
@@ -36,15 +33,17 @@ class MetricsPrinter:
     @staticmethod
     def print_config(config: Dict[str, Any], title: str = "Configuration") -> None:
         """Print configuration as a styled table."""
-        table = Table(title=f"[bold]{title}", box=box.ROUNDED, border_style="blue", width=60)
+        table = Table(
+            title=f"[bold]{title}", box=box.ROUNDED, border_style="blue", width=60
+        )
         table.add_column("Parameter", style="bold cyan", min_width=20)
         table.add_column("Value", style="white", min_width=20)
-        
+
         for key, value in config.items():
             if isinstance(value, float):
                 value = f"{value:.4f}"
             table.add_row(str(key), str(value))
-        
+
         console.print(table)
         console.print()
 
@@ -69,10 +68,14 @@ class MetricsPrinter:
                 clean_name = metric.replace("test_", "").replace("_", " ").title()
                 scores_arr = np.array(scores)
                 fold_str = " ".join([f"{s:.3f}" for s in scores_arr])
-                
+
                 mean_val = np.mean(scores_arr)
-                color = "green" if mean_val >= 0.85 else "yellow" if mean_val >= 0.70 else "red"
-                
+                color = (
+                    "green"
+                    if mean_val >= 0.85
+                    else "yellow" if mean_val >= 0.70 else "red"
+                )
+
                 table.add_row(
                     clean_name,
                     f"[bold {color}]{mean_val:.4f}[/bold {color}]",
@@ -81,7 +84,7 @@ class MetricsPrinter:
                     f"{np.max(scores_arr):.4f}",
                     f"[dim]{fold_str}[/dim]",
                 )
-        
+
         console.print(table)
         console.print()
 
@@ -103,16 +106,20 @@ class MetricsPrinter:
         table.add_column("Status", justify="center", min_width=12)
 
         # Sort by test F1
-        sorted_results = sorted(results, key=lambda x: x.get("test_f1", 0), reverse=True)
-        
+        sorted_results = sorted(
+            results, key=lambda x: x.get("test_f1", 0), reverse=True
+        )
+
         medals = ["🥇", "🥈", "🥉"]
         for idx, res in enumerate(sorted_results):
             rank = medals[idx] if idx < 3 else f"{idx+1}."
             test_f1 = res.get("test_f1", 0)
             status = "[bold green]✅ Best[/bold green]" if idx == 0 else "[dim]—[/dim]"
-            
-            color = "green" if test_f1 >= 0.85 else "yellow" if test_f1 >= 0.70 else "red"
-            
+
+            color = (
+                "green" if test_f1 >= 0.85 else "yellow" if test_f1 >= 0.70 else "red"
+            )
+
             table.add_row(
                 rank,
                 res["model_name"],
@@ -122,7 +129,7 @@ class MetricsPrinter:
                 res.get("model_size", "—"),
                 status,
             )
-        
+
         console.print(table)
         console.print()
 
@@ -140,7 +147,9 @@ def timer(name: str = "Operation"):
         console.print()
 
 
-def print_pipeline_stage(stage_num: int, total: int, title: str, description: str = "") -> None:
+def print_pipeline_stage(
+    stage_num: int, total: int, title: str, description: str = ""
+) -> None:
     """Print a pipeline stage header."""
     console.print()
     console.rule(f"[bold yellow]Stage {stage_num}/{total}: {title}", style="yellow")
@@ -151,7 +160,9 @@ def print_pipeline_stage(stage_num: int, total: int, title: str, description: st
 
 def print_file_saved(path: str, file_type: str = "file") -> None:
     """Print file save confirmation."""
-    console.print(f"[green]💾 {file_type.capitalize()} saved:[/green] [cyan]{path}[/cyan]")
+    console.print(
+        f"[green]💾 {file_type.capitalize()} saved:[/green] [cyan]{path}[/cyan]"
+    )
 
 
 def print_warning(message: str) -> None:

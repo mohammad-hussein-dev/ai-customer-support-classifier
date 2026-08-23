@@ -8,7 +8,7 @@ Author: Mohammad Hussein
 
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Union
 
 import yaml
 
@@ -25,6 +25,7 @@ def load_config(config_path: Union[str, Path] = "config/config.yaml") -> Dict[st
 def save_json(data: Dict[str, Any], path: Union[str, Path]) -> None:
     """Save dictionary as JSON."""
     import json
+
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:

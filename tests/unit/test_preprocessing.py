@@ -1,6 +1,5 @@
 """Unit tests for text preprocessing."""
 
-import pytest
 from src.data.preprocessing import TextPreprocessor
 
 

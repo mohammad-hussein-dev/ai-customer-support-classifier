@@ -2,13 +2,10 @@
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import joblib
 import numpy as np
-
-from src.data.preprocessing import TextPreprocessor
-from src.features.build_features import FeatureBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +35,8 @@ class TicketClassifier:
 
         logger.info(
             "Classifier loaded: %d classes, review_threshold=%.2f",
-            len(self.class_names), review_threshold,
+            len(self.class_names),
+            review_threshold,
         )
 
     def predict(self, text: str) -> Dict[str, Any]:
@@ -62,8 +60,7 @@ class TicketClassifier:
         if probabilities is not None:
             confidence = float(np.max(probabilities))
             all_probs = {
-                name: float(prob)
-                for name, prob in zip(self.class_names, probabilities)
+                name: float(prob) for name, prob in zip(self.class_names, probabilities)
             }
         else:
             confidence = 1.0
