@@ -76,3 +76,5 @@ env/
 *.blg
 *.fls
 *.fdb_latexmk
+
+.coverage

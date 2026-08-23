@@ -2,40 +2,85 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches:
+      - main
+      - develop
+
   pull_request:
-    branches: [main]
+    branches:
+      - main
+
+# Restrict the workflow token to read-only repository access.
+# This follows the principle of least privilege.
+permissions:
+  contents: read
 
 jobs:
   test:
+    name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+
     strategy:
+      # Run all matrix jobs even if one Python version fails.
+      fail-fast: false
+
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]
+        python-version:
+          - "3.10"
+          - "3.11"
 
     steps:
-      - uses: actions/checkout@v4
+      # Check out the exact commit that triggered this workflow.
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
+      # Install the Python version used by this CI matrix.
+      # Pip caching reduces installation time on subsequent runs.
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
 
+      # Install runtime and development dependencies.
+      # requirements-dev.txt includes requirements.txt.
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
+          python -m pip install -r requirements-dev.txt
 
-      - name: Lint with flake8
-        run: flake8 src tests --max-line-length=88
+      # Verify that the source code follows the project's
+      # Black formatting rules.
+      - name: Check formatting
+        run: |
+          python -m black --check src tests
 
-      - name: Type check with mypy
-        run: mypy src
+      # Run Flake8 for static code-quality checks.
+      - name: Lint
+        run: |
+          python -m flake8 src tests --max-line-length=88
 
-      - name: Test with pytest
-        run: pytest tests/ -v --cov=src --cov-report=xml
+      # Run Mypy for static type checking.
+      - name: Type check
+        run: |
+          python -m mypy src
 
+      # Run the complete test suite and generate coverage reports.
+      - name: Test
+        run: |
+          python -m pytest tests/ \
+            -v \
+            --cov=src \
+            --cov-report=term-missing \
+            --cov-report=xml
+
+      # Upload the generated coverage report.
+      # CI should remain successful even if Codecov has an outage.
       - name: Upload coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
-          file: ./coverage.xml
+          files: ./coverage.xml
+          fail_ci_if_error: false

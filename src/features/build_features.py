@@ -75,7 +75,37 @@ class FeatureBuilder:
         Returns:
             Self for method chaining.
         """
-        logger.info("Fitting vectorizer on %d documents", len(texts))
+        n_documents = len(texts)
+
+        if n_documents == 0:
+            raise ValueError("Cannot fit FeatureBuilder on empty text collection.")
+
+        # Small datasets need relaxed document-frequency thresholds.
+        # Otherwise sklearn can prune every term before fitting.
+        if n_documents < 3:
+            effective_min_df = 1
+            effective_max_df = 1.0
+        else:
+            effective_min_df = self.min_df
+            effective_max_df = self.max_df
+
+            if isinstance(self.max_df, float) and 0 < self.max_df < 1:
+                max_df_documents = int(self.max_df * n_documents)
+
+                if max_df_documents < effective_min_df:
+                    effective_max_df = 1.0
+
+        self.vectorizer = TfidfVectorizer(
+            max_features=self.max_features,
+            ngram_range=self.ngram_range,
+            min_df=effective_min_df,
+            max_df=effective_max_df,
+            sublinear_tf=self.sublinear_tf,
+            strip_accents="unicode",
+            dtype=np.float32,
+        )
+
+        logger.info("Fitting vectorizer on %d documents", n_documents)
         self.vectorizer.fit(texts)
         logger.info("Vocabulary size: %d", len(self.vectorizer.vocabulary_))
         return self
