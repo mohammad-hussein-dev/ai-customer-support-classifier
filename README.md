@@ -7,8 +7,8 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
 > **Production-ready NLP pipeline** for automated banking customer support ticket classification.
-> Trained on **BANKING77** dataset with 8 fine-grained intents.
-> Features dark-theme visualizations, Rich terminal output, and a glassmorphism Streamlit dashboard.
+> Trained on the **BANKING77** dataset using a focused subset of 8 fine-grained banking intents.
+> Includes reproducible preprocessing, feature engineering, model training, evaluation, error analysis, testing, and a Streamlit deployment interface.
 
 ---
 
@@ -18,33 +18,38 @@
 - [Dataset](#-dataset)
 - [Architecture](#-architecture)
 - [Key Features](#-key-features)
+- [Project Report](#-project-report)
 - [Installation](#-installation)
 - [Usage](#-usage)
 - [Project Structure](#-project-structure)
 - [Evaluation](#-evaluation)
 - [Streamlit Dashboard](#-streamlit-dashboard)
 - [Business Implications](#-business-implications)
+- [Scientific Requirements](#-scientific-requirements)
+- [Technology Stack](#-technology-stack)
 - [Author](#-author)
 
 ---
 
 ## 🎯 Overview
 
-Customer support teams in financial services receive thousands of tickets daily. Manual triage causes:
+Customer support teams in financial services receive large volumes of customer tickets.
+Manual triage can introduce delays, inconsistent routing, and unnecessary operational costs.
 
-- **Delays:** Average 4-6 hours response time
-- **Errors:** 15-20% misclassification rate
-- **Cost:** $2.50 per manual ticket routing
-- **Scale:** Cannot handle peak loads
+This project implements an end-to-end machine-learning pipeline for automatically classifying banking customer-support tickets into **8 selected intents** from the BANKING77 dataset.
 
-This project solves these problems with an end-to-end ML pipeline that:
+The system provides:
 
-1. **Classifies** tickets into 8 banking intents automatically
-2. **Explains** why each prediction was made (TF-IDF coefficients)
-3. **Monitors** confidence and routes low-confidence tickets to humans
-4. **Deploys** as an interactive Streamlit dashboard
+1. **Automatic ticket classification**
+2. **Confidence estimation**
+3. **Prediction explainability using TF-IDF features**
+4. **Low-confidence human-review routing**
+5. **Model evaluation and error analysis**
+6. **Reproducible training and preprocessing**
+7. **Interactive Streamlit deployment**
+8. **Automated tests for core components and the full pipeline**
 
-### Selected Intents (BANKING77 Subset)
+### Selected Intents
 
 | # | Intent | Description |
 |---|--------|-------------|
@@ -52,8 +57,8 @@ This project solves these problems with an end-to-end ML pipeline that:
 | 2 | `card_not_working` | Card malfunction |
 | 3 | `cash_withdrawal_not_recognised` | Unknown ATM withdrawals |
 | 4 | `declined_card_payment` | Payment rejection |
-| 5 | `lost_or_stolen_card` | Security incidents |
-| 6 | `transaction_charged_twice` | Duplicate charges |
+| 5 | `lost_or_stolen_card` | Lost or stolen card incidents |
+| 6 | `transaction_charged_twice` | Duplicate transaction charges |
 | 7 | `transfer_not_received_by_recipient` | Missing transfers |
 | 8 | `cash_withdrawal_charge` | ATM fee disputes |
 
@@ -61,61 +66,122 @@ This project solves these problems with an end-to-end ML pipeline that:
 
 ## 📊 Dataset
 
-**BANKING77** — Public English-language benchmark for fine-grained online-banking intent classification.
+**BANKING77** is a public English-language benchmark dataset for fine-grained online-banking intent classification.
 
-- **Total:** 13,083 customer-service queries
-- **Train:** 10,003 examples
-- **Test:** 3,080 examples
-- **Intents:** 77 (we use a manageable subset of 8)
-- **License:** CC BY 4.0
-- **Source:** [PolyAI GitHub](https://github.com/PolyAI-LDN/task-specific-datasets)
+| Property | Value |
+|----------|-------|
+| Total examples | 13,083 |
+| Training examples | 10,003 |
+| Test examples | 3,080 |
+| Total intents | 77 |
+| Intents used | 8 |
+| License | CC BY 4.0 |
+
+Source:
+
+[PolyAI Task-Specific Datasets](https://github.com/PolyAI-LDN/task-specific-datasets)
 
 ---
 
 ## 🏗️ Architecture
 
-```
-Raw Ticket
-    |
-    v
-TextPreprocessor (NLTK + Banking Stopwords)
-    - Lowercase
-    - Regex cleaning (URLs, emails, numbers)
-    - Tokenization
-    - Lemmatization
-    - Domain-aware stopword removal
-    |
-    v
-TF-IDF Vectorizer (scikit-learn Pipeline)
-    - N-gram: (1, 2)
-    - Max features: 5,000
-    - Sublinear TF
-    - Min DF: 2 | Max DF: 0.95
-    |
-    v
-Logistic Regression (balanced class weights)
-    - C = 1.0
-    - 8-class output
-    - Probability calibration
-    |
-    v
-Intent + Confidence + Explainability + Human Review Flag
-```
+```text
+                         Raw Customer Ticket
+                                  |
+                                  v
+                    +-------------------------+
+                    |    Text Preprocessing   |
+                    |-------------------------|
+                    | Lowercasing             |
+                    | Regex cleaning          |
+                    | Tokenization             |
+                    | Lemmatization            |
+                    | Domain stopword removal |
+                    +------------+------------+
+                                 |
+                                 v
+                    +-------------------------+
+                    |     Feature Building    |
+                    |-------------------------|
+                    | TF-IDF                  |
+                    | Unigrams + Bigrams      |
+                    | Metadata features       |
+                    +------------+------------+
+                                 |
+                                 v
+                    +-------------------------+
+                    |     ML Classification   |
+                    |-------------------------|
+                    | Logistic Regression     |
+                    | Balanced class weights  |
+                    | 8-class classification  |
+                    +------------+------------+
+                                 |
+                                 v
+                    +-------------------------+
+                    |      Prediction Layer   |
+                    |-------------------------|
+                    | Intent                  |
+                    | Confidence              |
+                    | Explainability          |
+                    | Human-review flag       |
+                    +------------+------------+
+                                 |
+                    +------------+-------------+
+                    |                          |
+              High confidence            Low confidence
+                    |                          |
+                    v                          v
+             Automated route             Human review
+````
 
 ---
 
 ## ✨ Key Features
 
-| Feature | Description |
-|---------|-------------|
-| 🎨 **Dark Theme** | Publication-quality figures with custom dark palette |
-| 📊 **Combined Dashboards** | Single figure with 6 subplots for EDA and evaluation |
-| 🖥️ **Rich Terminal** | Beautiful color-coded tables and progress output |
-| 🌐 **Streamlit App** | Glassmorphism UI with interactive Plotly charts |
-| 🔍 **Explainability** | Top TF-IDF terms for every prediction |
-| ⚠️ **Human Review** | Low-confidence routing with configurable threshold |
-| 📈 **Calibration** | Reliability diagrams for confidence assessment |
-| 🏦 **Banking-Optimized** | Domain-specific preprocessing and stopwords |
+| Feature                    | Description                                                          |
+| -------------------------- | -------------------------------------------------------------------- |
+| 🧹 **Text Preprocessing**  | NLTK-based preprocessing with domain-aware banking stopwords         |
+| 🔢 **TF-IDF Features**     | Unigram and bigram text representation                               |
+| 🤖 **ML Classification**   | Logistic Regression for 8-class intent classification                |
+| 🔍 **Explainability**      | TF-IDF coefficients and influential terms                            |
+| ⚠️ **Human Review**        | Low-confidence predictions can be routed to human agents             |
+| 📊 **Evaluation**          | Macro-F1, precision, recall, confusion matrix, and per-class metrics |
+| 🔬 **Error Analysis**      | Inspection of model failures and actionable recommendations          |
+| 🧪 **Testing**             | Unit and integration tests                                           |
+| 🌐 **Streamlit Dashboard** | Interactive prediction and model-analysis interface                  |
+| 📈 **Visualization**       | EDA, evaluation, confidence, and model-comparison figures            |
+| ⚙️ **Configuration**       | Centralized YAML-based configuration                                 |
+| 📝 **Reporting**           | Complete project report available as a PDF                           |
+
+---
+
+# 📄 Project Report
+
+A complete technical report documenting the project's methodology, data preparation, exploratory analysis, model development, evaluation, error analysis, and conclusions is included in the repository.
+
+### 📘 Full Technical Report
+
+**[📄 Open / Download the Project Report](reports/report.pdf)**
+
+The report covers:
+
+* Dataset and problem formulation
+* Exploratory Data Analysis (EDA)
+* Text preprocessing
+* Feature engineering
+* Model development
+* Baseline comparison
+* Model evaluation
+* Confusion-matrix analysis
+* Per-class performance
+* Confidence analysis
+* Error analysis
+* Business implications
+* Conclusions and recommendations
+
+> **The PDF is stored directly in the repository at `reports/report.pdf`.**
+> Click the link above to open the full report in GitHub or GitLab and download it as a PDF.
 
 ---
 
@@ -123,24 +189,30 @@ Intent + Confidence + Explainability + Human Review Flag
 
 ### Requirements
 
-- Python 3.10+
-- Arch Linux / macOS / Ubuntu
+* Python 3.10+
+* Linux, macOS, or Windows
+* pip
+* Git
 
 ### Setup
 
 ```bash
 # Clone repository
 git clone https://github.com/mohammad-hussein-dev/ai-customer-support-classifier.git
+
+# Enter project directory
 cd ai-customer-support-classifier
 
 # Create virtual environment
 python -m venv .venv
+
+# Activate virtual environment
 source .venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Download NLTK data
+# Download NLTK resources
 python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords'); nltk.download('wordnet')"
 ```
 
@@ -148,134 +220,227 @@ python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords'); nltk
 
 ## 📖 Usage
 
-### 1. Train & Evaluate
+### 1. Build the Dataset
 
 ```bash
-make train
+python scripts/build_hybrid_dataset.py
 ```
 
-Or manually:
+### 2. Preprocess and Split Data
+
+```bash
+python scripts/preprocess_and_split.py
+```
+
+### 3. Train and Evaluate
 
 ```bash
 python scripts/train_and_evaluate.py
 ```
 
-**Output:**
-- `models/production_v2/` — Serialized model, vectorizer, encoder
-- `reports/figures/` — Dark-theme evaluation dashboards
-- `reports/tables/evaluation_results.json` — Structured metrics
+The pipeline generates model artifacts and evaluation outputs under:
 
-### 2. Launch Streamlit Dashboard
-
-```bash
-make streamlit
+```text
+models/
+reports/figures/
+reports/tables/
 ```
 
-Or:
+### 4. Error Analysis
 
 ```bash
-streamlit run deployment/app.py
+python scripts/error_analysis.py
 ```
 
-**Features:**
-- 🎯 Single ticket prediction with confidence gauge
-- 📁 Batch CSV upload with distribution charts
-- 📊 Model performance metrics
-- 🔍 Top contributing terms per prediction
-
-### 3. Error Analysis
+### 5. Run Tests
 
 ```bash
-make evaluate
+pytest
 ```
 
-### 4. Run Tests
+Or using the project Makefile:
 
 ```bash
 make test
+```
+
+### 6. Launch the Streamlit Dashboard
+
+```bash
+streamlit run deployment/app.py
 ```
 
 ---
 
 ## 📁 Project Structure
 
-```
+```text
 ai-customer-support-classifier/
 │
+├── api/
+│   └── main.py
+│
 ├── config/
-│   └── config.yaml              # Centralized configuration
+│   ├── config.yaml
+│   ├── logging.yaml
+│   └── model_params.yaml
+│
+├── data/
+│   ├── external/
+│   ├── processed/
+│   │   ├── test.csv
+│   │   ├── train.csv
+│   │   ├── y_test.csv
+│   │   ├── y_test.npy
+│   │   ├── y_train.csv
+│   │   └── y_train.npy
+│   └── raw/
+│       ├── hybrid_dataset.csv
+│       └── tickets.csv
+│
+├── deployment/
+│   ├── app.py
+│   ├── Dockerfile
+│   └── requirements.txt
+│
+├── models/
+│   ├── baseline/
+│   │   ├── feature_builder.pkl
+│   │   ├── logistic_regression.pkl
+│   │   ├── naive_bayes.pkl
+│   │   ├── preprocessor.pkl
+│   │   └── svm.pkl
+│   │
+│   ├── production/
+│   │   ├── feature_builder.pkl
+│   │   ├── model.pkl
+│   │   └── preprocessor.pkl
+│   │
+│   └── production_v2/
+│       ├── encoder.pkl
+│       ├── metrics.json
+│       ├── model.pkl
+│       └── vectorizer.pkl
+│
+├── notebooks/
+│
+├── reports/
+│   ├── developer.jpg
+│   ├── figures/
+│   │   ├── 01_intent_distribution.png
+│   │   ├── 02_text_length_violin.png
+│   │   ├── 03_confusion_matrix.png
+│   │   └── 04_per_class_f1.png
+│   ├── report.pdf
+│   ├── report.tex
+│   └── tables/
+│       ├── eda_summary.csv
+│       ├── error_analysis.json
+│       ├── evaluation_report.txt
+│       └── model_comparison.csv
+│
+├── scripts/
+│   ├── build_hybrid_dataset.py
+│   ├── error_analysis.py
+│   ├── preprocess_and_split.py
+│   ├── train_and_evaluate.py
+│   └── visualize.py
 │
 ├── src/
 │   ├── data/
-│   │   └── preprocessing.py     # TextPreprocessor (NLTK + banking stopwords)
+│   │   ├── __init__.py
+│   │   ├── make_dataset.py
+│   │   └── preprocessing.py
+│   │
 │   ├── features/
-│   │   └── build_features.py    # FeatureBuilder (TF-IDF + metadata)
+│   │   ├── __init__.py
+│   │   ├── build_features.py
+│   │   └── text_features.py
+│   │
 │   ├── models/
-│   │   ├── train_model.py       # ModelTrainer (CV + GridSearch)
-│   │   ├── evaluate_model.py    # ModelEvaluator (Rich output + dark figures)
-│   │   └── predict_model.py     # TicketClassifier (production inference)
+│   │   ├── __init__.py
+│   │   ├── evaluate_model.py
+│   │   ├── predict_model.py
+│   │   └── train_model.py
+│   │
 │   ├── utils/
-│   │   ├── config.py            # YAML config loader
-│   │   ├── helpers.py           # Common utilities
-│   │   ├── logger.py            # Rich logging setup
-│   │   └── metrics.py           # Beautiful metric tables
+│   │   ├── __init__.py
+│   │   ├── config.py
+│   │   ├── helpers.py
+│   │   ├── logger.py
+│   │   └── metrics.py
+│   │
 │   └── visualization/
-│       └── visualize.py         # BankingVisualizer (dark theme dashboards)
+│       ├── __init__.py
+│       └── visualize.py
 │
-├── scripts/
-│   ├── train_and_evaluate.py    # End-to-end training pipeline
-│   └── error_analysis.py        # Deep error analysis with recommendations
+├── tests/
+│   ├── __init__.py
+│   ├── integration/
+│   │   ├── __init__.py
+│   │   └── test_pipeline.py
+│   └── unit/
+│       ├── __init__.py
+│       ├── test_features.py
+│       ├── test_model.py
+│       └── test_preprocessing.py
 │
-├── deployment/
-│   └── app.py                   # Streamlit dashboard (glassmorphism)
-│
-├── models/
-│   └── production_v2/           # Serialized artifacts
-│
-├── reports/
-│   ├── figures/                 # Dark-theme visualizations
-│   └── tables/                  # JSON/CSV evaluation reports
-│
-├── requirements.txt
+├── docker-compose.yml
+├── Dockerfile
 ├── Makefile
-└── README.md
+├── pyproject.toml
+├── README.md
+└── requirements.txt
 ```
 
 ---
 
 ## 📈 Evaluation
 
-### Required Visualizations (StudyBuild)
+The project evaluates the classifier beyond simple accuracy.
 
-| # | Figure | File |
-|---|--------|------|
-| 1 | **Intent Distribution** | `00_eda_master_dashboard.png` (combined) |
-| 2 | **Message/Word Length by Intent** | `00_eda_master_dashboard.png` (combined) |
-| 3 | **Top TF-IDF Terms** | `02_tfidf_top_terms.png` |
-| 4 | **Confusion Matrix** | `01_evaluation_dashboard.png` (combined) |
-| 5 | **Per-Class F1-Score** | `01_evaluation_dashboard.png` (combined) |
-| 6 | **Confidence Distribution** | `03_confidence_analysis.png` |
-| 7 | **Baseline vs ML** | `05_baseline_comparison.png` |
+### Evaluation Components
 
-### Metrics
+| Component               | Purpose                                        |
+| ----------------------- | ---------------------------------------------- |
+| **Macro-F1**            | Primary overall metric across the 8 classes    |
+| **Precision**           | Measures correctness of positive predictions   |
+| **Recall**              | Measures coverage of actual intent classes     |
+| **Per-Class F1**        | Identifies weak and strong intent classes      |
+| **Confusion Matrix**    | Reveals systematic class confusion             |
+| **Confidence Analysis** | Evaluates prediction certainty                 |
+| **Error Analysis**      | Investigates representative misclassifications |
+| **Baseline Comparison** | Compares simple baseline approaches against ML |
 
-- **Accuracy:** Not reported alone (per requirements)
-- **Macro-F1:** Primary metric for class imbalance
-- **Per-Class:** Precision, Recall, F1 for all 8 intents
-- **Confidence Calibration:** Reliability diagram included
+### Generated Reports
+
+Evaluation artifacts are stored under:
+
+```text
+reports/
+├── figures/
+└── tables/
+```
+
+The complete interpretation of the results is available in:
+
+**[📄 Project Report](reports/report.pdf)**
 
 ---
 
 ## 🎨 Streamlit Dashboard
 
-### Screenshots
+The project includes an interactive Streamlit interface for model inference and analysis.
 
-The dashboard features:
-- **Dark gradient background** with glassmorphism cards
-- **Confidence gauge** with color-coded thresholds
-- **Interactive probability bars** (Plotly)
-- **Batch upload** with pie chart distribution
-- **Model performance** metrics table
+### Features
+
+* 🎯 Single-ticket prediction
+* 📊 Prediction probabilities
+* 🔍 Top contributing terms
+* ⚠️ Confidence-based human-review flag
+* 📁 Batch CSV prediction
+* 📈 Prediction distribution
+* 📋 Model performance information
 
 ### Run
 
@@ -287,55 +452,81 @@ streamlit run deployment/app.py
 
 ## 💼 Business Implications
 
-### Q6: Are all errors equally costly?
+### Are all errors equally costly?
 
-**Business-critical intents** (flagged in config):
+No.
 
-| Intent | False Negative Risk | Recommended Action |
-|--------|---------------------|-------------------|
-| `lost_or_stolen_card` | 🔴 **CRITICAL** | Always route to security team |
-| `declined_card_payment` | 🟡 **HIGH** | Priority queue for payment team |
-| `transaction_charged_twice` | 🟡 **HIGH** | Fast-track to billing team |
+Certain banking intents have substantially higher operational or security consequences.
 
-**Metric Priority:**
-- **Recall** is most important for critical intents (don't miss them)
-- **Precision** matters for high-volume intents (don't waste agent time)
-- **Macro-F1** balances both across all classes
+| Intent                      | Risk            | Recommended Action              |
+| --------------------------- | --------------- | ------------------------------- |
+| `lost_or_stolen_card`       | 🔴 **Critical** | Immediate security-team routing |
+| `declined_card_payment`     | 🟡 **High**     | Priority payment-team routing   |
+| `transaction_charged_twice` | 🟡 **High**     | Fast-track to billing support   |
 
-### Q8: When should the system defer to a human?
+### Metric Priorities
 
-**Rule:** Confidence < 0.7 → Human review
-
-**Justification:**
-- Covers ~15-20% of predictions
-- Captures most high-cost errors
-- Balances automation vs accuracy
-- Adjustable per intent (stricter for critical intents)
+* **Recall** is particularly important for critical intents.
+* **Precision** matters for high-volume operational intents.
+* **Macro-F1** provides balanced evaluation across all selected classes.
 
 ---
 
-## 🛠️ Technology Stack
+## 👤 Human Review Policy
 
-| Category | Technologies |
-|----------|-------------|
-| **Languages** | Python 3.10+ |
-| **ML / NLP** | scikit-learn, NLTK, NumPy, Pandas |
-| **Visualization** | Matplotlib, Seaborn, Plotly |
-| **Dashboard** | Streamlit |
-| **Terminal UI** | Rich |
-| **API** | FastAPI, Uvicorn, Pydantic |
-| **OS** | Arch Linux |
+The classifier can defer uncertain predictions to human agents.
+
+### Default Rule
+
+```text
+confidence < 0.70
+        ↓
+Human Review
+```
+
+This threshold can be adjusted according to operational requirements.
+
+The objective is not to automate every decision, but to combine:
+
+```text
+High-confidence predictions
+          +
+Human review for uncertain cases
+          =
+Safer automation
+```
 
 ---
 
 ## 🧪 Scientific Requirements
 
-✅ **No data leakage** — TF-IDF fit on training data only  
-✅ **Reproducibility** — Fixed random seed (42)  
-✅ **Beyond Accuracy** — Macro-F1 + per-class metrics  
-✅ **Error Analysis** — 20+ misclassifications inspected  
-✅ **Baseline Comparison** — Keyword system vs ML model  
-✅ **Interpretability** — TF-IDF coefficients + top terms  
+The project follows several reproducibility and machine-learning best practices:
+
+* ✅ **No data leakage** — preprocessing and feature fitting are performed using training data appropriately.
+* ✅ **Reproducibility** — fixed random seed where applicable.
+* ✅ **Beyond Accuracy** — Macro-F1 and per-class metrics are included.
+* ✅ **Error Analysis** — representative model errors are investigated.
+* ✅ **Baseline Comparison** — baseline approaches are compared against the ML classifier.
+* ✅ **Interpretability** — TF-IDF features and model coefficients provide prediction-level insight.
+* ✅ **Automated Testing** — unit and integration tests cover core functionality.
+* ✅ **Configuration Management** — model and application parameters are centralized in configuration files.
+
+---
+
+## 🛠️ Technology Stack
+
+| Category             | Technologies                      |
+| -------------------- | --------------------------------- |
+| **Language**         | Python 3.10+                      |
+| **ML / NLP**         | scikit-learn, NLTK, NumPy, Pandas |
+| **Visualization**    | Matplotlib, Seaborn, Plotly       |
+| **Dashboard**        | Streamlit                         |
+| **Terminal UI**      | Rich                              |
+| **API**              | FastAPI, Uvicorn, Pydantic        |
+| **Testing**          | Pytest                            |
+| **Containerization** | Docker, Docker Compose            |
+| **Configuration**    | YAML                              |
+| **OS**               | Linux / Arch Linux                |
 
 ---
 
@@ -343,10 +534,10 @@ streamlit run deployment/app.py
 
 **Mohammad Hussein**
 
-- 🐙 GitHub: [github.com/mohammad-hussein-dev](https://github.com/mohammad-hussein-dev)
-- 💼 LinkedIn: [mohammad-hussein-dev](https://linkedin.com/in/mohammad-hussein-dev)
-- 💬 Telegram: [@mohammad_hussein_dev](https://t.me/mohammad_hussein_dev)
-- 📧 Email: [king.mohamd.09876@gmail.com](mailto:king.mohamd.09876@gmail.com)
+* 🐙 GitHub: [@mohammad-hussein-dev](https://github.com/mohammad-hussein-dev)
+* 💼 LinkedIn: [mohammad-hussein-dev](https://linkedin.com/in/mohammad-hussein-dev)
+* 💬 Telegram: [@mohammad_hussein_dev](https://t.me/mohammad_hussein_dev)
+* 📧 Email: [king.mohamd.09876@gmail.com](mailto:king.mohamd.09876@gmail.com)
 
 > *"Clean code, solid architecture, and data-driven decisions."*
 
@@ -354,4 +545,4 @@ streamlit run deployment/app.py
 
 ⭐ **If you find this project useful, please consider giving it a star!**
 
-Built with 🐧💻 in Arch Linux
+Built with 🐧💻 on Arch Linux.
